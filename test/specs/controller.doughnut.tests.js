@@ -330,6 +330,45 @@ describe('Chart.controllers.doughnut', function() {
     expect(controller.innerRadius).toBe(126);
   });
 
+  describe('thickness', function() {
+    function make(size, opts, datasets) {
+      return window.acquireChart({
+        type: 'doughnut',
+        data: {datasets: datasets || [{data: [1, 2, 3]}]},
+        options: Object.assign({animation: false}, opts)
+      }, {canvas: {style: ''}, wrapper: {style: 'width: ' + size + 'px; height: ' + size + 'px'}});
+    }
+
+    it('should keep a fixed ring thickness across chart sizes', function() {
+      [216, 400].forEach(function(size) {
+        const chart = make(size, {thickness: 12, cutout: '83%'});
+        const arc = chart.getDatasetMeta(0).data[0];
+        expect(arc.outerRadius - arc.innerRadius).toBeCloseTo(12, 5);
+      });
+    });
+
+    it('should apply thickness to each dataset ring', function() {
+      const chart = make(300, {thickness: 10}, [{data: [1, 2]}, {data: [3, 4]}]);
+      [0, 1].forEach(function(i) {
+        const arc = chart.getDatasetMeta(i).data[0];
+        expect(arc.outerRadius - arc.innerRadius).toBeCloseTo(10, 5);
+      });
+    });
+
+    it('should clamp thickness larger than the radius', function() {
+      const chart = make(200, {thickness: 1000});
+      const arc = chart.getDatasetMeta(0).data[0];
+      expect(arc.innerRadius).toBe(0);
+      expect(arc.outerRadius).toBeGreaterThan(0);
+    });
+
+    it('should not change behaviour when not set', function() {
+      const chart = make(200, {});
+      const arc = chart.getDatasetMeta(0).data[0];
+      expect(arc.innerRadius).toBeCloseTo(arc.outerRadius / 2, 5);
+    });
+  });
+
   describe('Interactions', function() {
     beforeEach(function() {
       this.chart = window.acquireChart({

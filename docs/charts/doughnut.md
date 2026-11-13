@@ -190,6 +190,7 @@ These are the customisation options specific to Pie & Doughnut charts. These opt
 | Name | Type | Default | Description
 | ---- | ---- | ------- | -----------
 | `cutout` | `number`\|`string` | `50%` - for doughnut, `0` - for pie | The portion of the chart that is cut out of the middle. If `string` and ending with '%', percentage of the chart radius. `number` is considered to be pixels.
+| `thickness` | `number` | `undefined` | Thickness of each ring in pixels (a dataset with `weight` 2 is twice as thick). When set, it takes precedence over `cutout`, so the ring keeps a fixed width regardless of chart size. It is clamped to the available radius. For partial circles the chart layout still uses `cutout`.
 | `radius` | `number`\|`string` | `100%` | The outer radius of the chart. If `string` and ending with '%', percentage of the maximum radius. `number` is considered to be pixels.
 | `rotation` | `number` | 0 | Starting angle to draw arcs from.
 | `circumference` | `number` | 360 | Sweep to allow arcs to cover.
