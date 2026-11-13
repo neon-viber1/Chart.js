@@ -157,6 +157,23 @@ function getContainerSize(canvas: HTMLCanvasElement, width: number, height: numb
   };
 }
 
+/**
+ * Checks whether the height of the canvas container is independent from the canvas itself.
+ * If the container height is only defined by the canvas (auto height), the height measured
+ * before the canvas is resized is stale and must not limit the new size of the chart.
+ */
+function isContainerHeightConstrained(canvas: HTMLCanvasElement): boolean {
+  const container = _getParentNode(canvas) as HTMLElement;
+  if (!container) {
+    return true;
+  }
+  const display = canvas.style.display;
+  canvas.style.display = 'none';
+  const height = container.clientHeight;
+  canvas.style.display = display;
+  return height > 0;
+}
+
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
 // eslint-disable-next-line complexity
@@ -191,7 +208,8 @@ export function getMaximumSize(
 
   const maintainHeight = bbWidth !== undefined || bbHeight !== undefined;
 
-  if (maintainHeight && aspectRatio && containerSize.height && height > containerSize.height) {
+  if (maintainHeight && aspectRatio && containerSize.height && height > containerSize.height
+    && isContainerHeightConstrained(canvas)) {
     height = containerSize.height;
     width = round1(Math.floor(height * aspectRatio));
   }
