@@ -18,6 +18,13 @@ import {debounce} from '../helpers/helpers.extras.js';
  */
 
 const KNOWN_POSITIONS = ['top', 'bottom', 'left', 'right', 'chartArea'];
+function resolvePlatform(platform, canvas) {
+  if (platform && typeof platform === 'object') {
+    return platform;
+  }
+  return new (platform || _detectPlatform(canvas))();
+}
+
 function positionIsHorizontal(position, axis) {
   return position === 'top' || position === 'bottom' || (KNOWN_POSITIONS.indexOf(position) === -1 && axis === 'x');
 }
@@ -133,7 +140,7 @@ class Chart {
 
     const options = config.createResolver(config.chartOptionScopes(), this.getContext());
 
-    this.platform = new (config.platform || _detectPlatform(initialCanvas))();
+    this.platform = resolvePlatform(config.platform, initialCanvas);
     this.platform.updateConfig(config);
 
     const context = this.platform.acquireContext(initialCanvas, options.aspectRatio);

@@ -2335,5 +2335,36 @@ describe('Chart', function() {
       });
       expect(chart.platform).toBeInstanceOf(Chart.platforms.BasicPlatform);
     });
+
+    it('should create a new platform per chart when a class is provided', function() {
+      const a = acquireChart({platform: Chart.platforms.BasicPlatform, type: 'line'});
+      const b = acquireChart({platform: Chart.platforms.BasicPlatform, type: 'line'});
+      expect(a.platform).not.toBe(b.platform);
+    });
+
+    it('should use the platform instance provided in config', function() {
+      const instance = new Chart.platforms.BasicPlatform();
+      const chart = acquireChart({platform: instance, type: 'line'});
+      expect(chart.platform).toBe(instance);
+    });
+
+    it('should detect the platform by default', function() {
+      const chart = acquireChart({type: 'line'});
+      expect(chart.platform).toBeInstanceOf(Chart.platforms.DomPlatform);
+    });
+
+    it('should allow a shared instance to serve several charts', function(done) {
+      const instance = new Chart.platforms.DomPlatform();
+      const a = acquireChart({platform: instance, type: 'line', options: {animation: false, responsive: true, maintainAspectRatio: false}}, {canvas: {style: ''}, wrapper: {style: 'width: 200px; height: 100px; position: relative'}});
+      const b = acquireChart({platform: instance, type: 'line', options: {animation: false, responsive: true, maintainAspectRatio: false}}, {canvas: {style: ''}, wrapper: {style: 'width: 200px; height: 100px; position: relative'}});
+      expect(a.platform).toBe(b.platform);
+      a.destroy();
+      const wrapper = b.canvas.parentNode;
+      wrapper.style.width = '300px';
+      waitForResize(b, function() {
+        expect(b.width).toBe(300);
+        done();
+      });
+    });
   });
 });
