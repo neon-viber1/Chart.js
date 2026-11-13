@@ -897,4 +897,38 @@ describe('Core.scale', function() {
       expect(scales.x.options.title.strokeWidth).toBeUndefined();
     });
   });
+
+  describe('border dash options', function() {
+    it('should apply border.dash and border.dashOffset to grid lines only', function() {
+      const chart = window.acquireChart({
+        type: 'line',
+        data: {datasets: [{data: [1, 2, 3]}], labels: ['a', 'b', 'c']},
+        options: {
+          scales: {
+            y: {border: {dash: [2, 2], dashOffset: 1}}
+          }
+        }
+      });
+      const scale = chart.scales.y;
+      const items = scale._computeGridLineItems(chart.chartArea);
+      expect(items.length).toBeGreaterThan(0);
+      items.forEach(function(item) {
+        expect(item.borderDash).toEqual([2, 2]);
+        expect(item.borderDashOffset).toBe(1);
+      });
+
+      const calls = [];
+      const ctx = scale.ctx;
+      spyOn(ctx, 'setLineDash').and.callFake(function(dash) {
+        calls.push(dash.length);
+      });
+      const strokeSpy = spyOn(ctx, 'stroke').and.callFake(function() {
+        calls.push('stroke');
+      });
+      calls.length = 0;
+      scale.drawBorder();
+      expect(strokeSpy).toHaveBeenCalledTimes(1);
+      expect(calls).toEqual(['stroke']);
+    });
+  });
 });
