@@ -178,6 +178,23 @@ describe('Category scale tests', function() {
     expect(scale.getLabelForValue(1)).toBe('tick2');
   });
 
+  it('Should only treat numeric values as indices in getLabelForValue', function() {
+    var chart = window.acquireChart({
+      type: 'line',
+      data: {
+        datasets: [{data: [1, 2, 3, 4, 5]}],
+        labels: ['x', '3', 'y', 'z', 'w']
+      },
+      options: {scales: {x: {type: 'category'}}}
+    });
+
+    var scale = chart.scales.x;
+    expect(scale.getLabelForValue(1)).toBe('3');
+    expect(scale.getLabelForValue('3')).toBe('3');
+    expect(scale.getLabelForValue('2')).toBe('2');
+    expect(scale.getLabelForValue(7)).toBe(7);
+  });
+
   it('Should get the correct pixel for a value when horizontal', function() {
     var chart = window.acquireChart({
       type: 'line',
