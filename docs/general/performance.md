@@ -22,7 +22,7 @@ Line charts are able to do [automatic data decimation during draw](#automatic-da
 
 ### Many datasets in a bar chart
 
-Every dataset in a grouped bar chart takes its own slot in each category, so hundreds or thousands of datasets make each bar narrower than one device pixel and neighbouring bars blend together. The default legend also grows with the number of datasets and can use up most of the canvas. If the chart area ends up with no width or height, nothing is drawn and a warning is logged to the console. Aggregate or decimate the data, hide the legend with `plugins.legend.display: false`, or use fewer datasets with more data points each.
+Every dataset in a grouped bar chart takes its own slot in each category, so hundreds or thousands of datasets make each bar narrower than one device pixel and neighbouring bars blend together. The default legend also grows with the number of datasets and can use up most of the canvas. A warning is logged to the console when bars become thinner than one pixel or when the chart area ends up with no width or height (in which case nothing is drawn). Large dataset counts are also handled efficiently, but each dataset still adds work, so reduce the count where you can. Aggregate or decimate the data, hide the legend with `plugins.legend.display: false`, or use fewer datasets with more data points each.
 
 ## Tick Calculation
 

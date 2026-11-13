@@ -402,6 +402,12 @@ export default class BarController extends DatasetController {
       const parsed = this.getParsed(i);
       const vpixels = reset || isNullOrUndef(parsed[vScale.axis]) ? {base, head: base} : this._calculateBarValuePixels(i);
       const ipixels = this._calculateBarIndexPixels(i, ruler);
+      if (!reset && !this.chart._warnedThinBars && ipixels.size > 0 && ipixels.size < 1) {
+        this.chart._warnedThinBars = true;
+        console.warn('Chart.js: bars are thinner than one pixel (' + ipixels.size.toFixed(3) + 'px) because of the number of ' +
+          'datasets or categories, so neighbouring bars blend together. Consider aggregating or decimating the data, ' +
+          'using fewer datasets, or enlarging the chart.');
+      }
       const stack = (parsed._stacks || {})[vScale.axis];
 
       const properties = {
@@ -432,6 +438,47 @@ export default class BarController extends DatasetController {
 	 * @private
 	 */
   _getStacks(last, dataIndex) {
+    const cache = this.chart._stacksCache;
+    if (cache && dataIndex === undefined) {
+      const {stacks, lengths} = this._getCachedStacks(cache);
+      const length = lengths.has(last) ? lengths.get(last) : stacks.length;
+      return length ? stacks.slice(0, length) : [undefined];
+    }
+    return this._computeStacks(last, dataIndex);
+  }
+
+  /**
+	 * While the chart updates its datasets, the stacks of all datasets are derived from
+	 * the same list: a dataset only sees the stacks up to (and including) itself.
+	 * Computing that list once avoids work that grows quadratically with the dataset count.
+	 * @private
+	 */
+  _getCachedStacks(cache) {
+    const {iScale} = this._cachedMeta;
+    const key = this._type + '|' + iScale.id;
+    let entry = cache[key];
+    if (!entry) {
+      const metasets = iScale.getMatchingVisibleMetas(this._type)
+        .filter(meta => meta.controller.options.grouped);
+      const stacked = iScale.options.stacked;
+      const stacks = [];
+      const lengths = new Map();
+      for (const meta of metasets) {
+        if (stacked === false || stacks.indexOf(meta.stack) === -1 ||
+          (stacked === undefined && meta.stack === undefined)) {
+          stacks.push(meta.stack);
+        }
+        lengths.set(meta.index, stacks.length);
+      }
+      entry = cache[key] = {stacks, lengths};
+    }
+    return entry;
+  }
+
+  /**
+	 * @private
+	 */
+  _computeStacks(last, dataIndex) {
     const {iScale} = this._cachedMeta;
     const metasets = iScale.getMatchingVisibleMetas(this._type)
       .filter(meta => meta.controller.options.grouped);
@@ -497,6 +544,17 @@ export default class BarController extends DatasetController {
   }
 
   _getAxis() {
+    const cache = this.chart._stacksCache;
+    if (cache) {
+      return cache.axes || (cache.axes = this._computeAxis());
+    }
+    return this._computeAxis();
+  }
+
+  /**
+	 * @private
+	 */
+  _computeAxis() {
     const axis = {};
     const firstScaleAxisId = this.getFirstScaleIdForIndexAxis();
     for (const dataset of this.chart.data.datasets) {
@@ -516,13 +574,28 @@ export default class BarController extends DatasetController {
 	 * @private
 	 */
   _getStackIndex(datasetIndex, name, dataIndex) {
-    const stacks = this._getStacks(datasetIndex, dataIndex);
-    const index = (name !== undefined)
-      ? stacks.indexOf(name)
-      : -1; // indexOf returns -1 if element is not present
+    const cache = this.chart._stacksCache;
+    let stacks, length;
+    if (cache && dataIndex === undefined) {
+      // Avoid copying the (possibly very long) shared list for every bar
+      const cached = this._getCachedStacks(cache);
+      stacks = cached.stacks;
+      length = cached.lengths.has(datasetIndex) ? cached.lengths.get(datasetIndex) : stacks.length;
+      length = length || 1;
+    } else {
+      stacks = this._getStacks(datasetIndex, dataIndex);
+      length = stacks.length;
+    }
+    let index = -1; // -1 if the stack is not present
+    if (name !== undefined) {
+      index = stacks.indexOf(name);
+      if (index >= length) {
+        index = -1;
+      }
+    }
 
     return (index === -1)
-      ? stacks.length - 1
+      ? length - 1
       : index;
   }
 
@@ -639,15 +712,30 @@ export default class BarController extends DatasetController {
     const skipNull = options.skipNull;
     const maxBarThickness = valueOrDefault(options.maxBarThickness, Infinity);
     let center, size;
-    const axisCount = this._getAxisCount();
+    // The axis count and (without skipNull) the stack index are the same for
+    // every bar of this dataset, so resolve them once per ruler. Recomputing them
+    // per bar makes updates quadratic in the number of datasets.
+    const axisCount = ruler.axisCount === undefined ? (ruler.axisCount = this._getAxisCount()) : ruler.axisCount;
     if (ruler.grouped) {
       const stackCount = skipNull ? this._getStackCount(index) : ruler.stackCount;
       const range = options.barThickness === 'flex'
         ? computeFlexCategoryTraits(index, ruler, options, stackCount * axisCount)
         : computeFitCategoryTraits(index, ruler, options, stackCount * axisCount);
-      const axisID = this.chart.options.indexAxis === 'x' ? this.getDataset().xAxisID : this.getDataset().yAxisID;
-      const axisNumber = this._getAxis().indexOf(valueOrDefault(axisID, this.getFirstScaleIdForIndexAxis()));
-      const stackIndex = this._getStackIndex(this.index, this._cachedMeta.stack, skipNull ? index : undefined) + axisNumber;
+      if (ruler.axisNumber === undefined) {
+        const axisID = this.chart.options.indexAxis === 'x' ? this.getDataset().xAxisID : this.getDataset().yAxisID;
+        ruler.axisNumber = this._getAxis().indexOf(valueOrDefault(axisID, this.getFirstScaleIdForIndexAxis()));
+      }
+      const axisNumber = ruler.axisNumber;
+      let stackIndex;
+      if (skipNull) {
+        stackIndex = this._getStackIndex(this.index, this._cachedMeta.stack, index);
+      } else {
+        if (ruler.stackIndex === undefined) {
+          ruler.stackIndex = this._getStackIndex(this.index, this._cachedMeta.stack);
+        }
+        stackIndex = ruler.stackIndex;
+      }
+      stackIndex += axisNumber;
       center = range.start + (range.chunk * stackIndex) + (range.chunk / 2);
       size = Math.min(maxBarThickness, range.chunk * range.ratio);
     } else {

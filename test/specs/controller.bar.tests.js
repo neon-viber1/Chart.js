@@ -1310,6 +1310,45 @@ describe('Chart.controllers.bar', function() {
   });
 
   describe('Many datasets', function() {
+    it('should warn once when bars are thinner than one pixel', function() {
+      spyOn(console, 'warn');
+      const chart = window.acquireChart({
+        type: 'bar',
+        data: {
+          labels: ['a'],
+          datasets: Array.from({length: 300}, () => ({data: [1]}))
+        },
+        options: {animation: false, plugins: {legend: {display: false}}}
+      }, {canvas: {height: 100, width: 100}});
+      expect(console.warn).toHaveBeenCalledTimes(1);
+      chart.update();
+      expect(console.warn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not warn for normal bar widths', function() {
+      spyOn(console, 'warn');
+      window.acquireChart({
+        type: 'bar',
+        data: {labels: ['a', 'b'], datasets: [{data: [1, 2]}, {data: [2, 1]}]},
+        options: {animation: false}
+      });
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it('should lay out many datasets without a stack lookup per bar', function() {
+      const chart = window.acquireChart({
+        type: 'bar',
+        data: {
+          labels: ['a', 'b'],
+          datasets: Array.from({length: 40}, () => ({data: [1, 2]}))
+        },
+        options: {animation: false, plugins: {legend: {display: false}}}
+      }, {canvas: {height: 100, width: 400}});
+      const spy = spyOn(chart.getDatasetMeta(0).controller, '_computeStacks').and.callThrough();
+      chart.update();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
     it('should not overlap adjacent bars within a category', function() {
       const count = 300;
       const chart = window.acquireChart({

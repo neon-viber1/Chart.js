@@ -167,6 +167,7 @@ class Chart {
     this._plugins = new PluginService();
     this.$proxies = {};
     this._hiddenIndices = {};
+    this._warnedThinBars = false;
     this.attached = false;
     this._animationsDisabled = undefined;
     this.$context = undefined;
@@ -664,8 +665,14 @@ class Chart {
       this.getDatasetMeta(i).controller.configure();
     }
 
-    for (let i = 0, ilen = this.data.datasets.length; i < ilen; ++i) {
-      this._updateDataset(i, isFunction(mode) ? mode({datasetIndex: i}) : mode);
+    // Lets dataset controllers share derived data (e.g. bar stacks) during this update only
+    this._stacksCache = {};
+    try {
+      for (let i = 0, ilen = this.data.datasets.length; i < ilen; ++i) {
+        this._updateDataset(i, isFunction(mode) ? mode({datasetIndex: i}) : mode);
+      }
+    } finally {
+      this._stacksCache = undefined;
     }
 
     this.notifyPlugins('afterDatasetsUpdate', {mode});

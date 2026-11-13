@@ -59,9 +59,10 @@ describe('Chart', function() {
       spyOn(console, 'warn');
       const chart = create(200, 60);
       expect(chart.chartArea.height <= 0 || chart.chartArea.width <= 0).toBe(true);
-      expect(console.warn).toHaveBeenCalledTimes(1);
+      const count = () => console.warn.calls.allArgs().filter(a => (/chart area/).test(a[0])).length;
+      expect(count()).toBe(1);
       chart.update();
-      expect(console.warn).toHaveBeenCalledTimes(1);
+      expect(count()).toBe(1);
     });
 
     it('should not warn when the chart area is available', function() {
