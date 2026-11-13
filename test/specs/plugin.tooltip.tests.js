@@ -1657,7 +1657,7 @@ describe('Plugin.Tooltip', function() {
       expect(chart.tooltip.getActiveElements().length).toBe(0);
     });
 
-    it('should not change the active elements on events outside chartArea, except for mouseout', async function() {
+    it('should close the tooltip on events outside chartArea that do not hover an element, and on mouseout', async function() {
       var chart = acquireChart({
         type: 'line',
         data: {
@@ -1683,10 +1683,54 @@ describe('Plugin.Tooltip', function() {
       expect(chart.tooltip.getActiveElements()).toEqual([{datasetIndex: 0, index: 0, element: point}]);
 
       await jasmine.triggerMouseEvent(chart, 'mousemove', {x: 1, y: 1});
+      expect(chart.tooltip.getActiveElements()).toEqual([]);
+
+      await jasmine.triggerMouseEvent(chart, 'mousemove', {x: point.x, y: point.y});
       expect(chart.tooltip.getActiveElements()).toEqual([{datasetIndex: 0, index: 0, element: point}]);
 
       await jasmine.triggerMouseEvent(chart, 'mouseout', {x: 1, y: 1});
       expect(chart.tooltip.getActiveElements()).toEqual([]);
+    });
+
+    it('should keep the tooltip outside chartArea while hovering an overflowing element', async function() {
+      var chart = acquireChart({
+        type: 'line',
+        data: {
+          labels: ['A', 'B', 'C', 'D'],
+          datasets: [{data: [10, 20, 30, 100], pointRadius: 10}],
+        },
+        options: {
+          scales: {x: {display: false}, y: {display: false}},
+          layout: {padding: 50}
+        }
+      });
+
+      var point = chart.getDatasetMeta(0).data[0];
+      await jasmine.triggerMouseEvent(chart, 'mousemove', {x: point.x, y: point.y});
+      expect(chart.tooltip.getActiveElements().length).toBe(1);
+
+      // still over the point but outside chartArea
+      await jasmine.triggerMouseEvent(chart, 'mousemove', {x: point.x - 5, y: point.y});
+      expect(chart.tooltip.getActiveElements().length).toBe(1);
+
+      // moved off the point, still in canvas, outside chartArea
+      await jasmine.triggerMouseEvent(chart, 'mousemove', {x: point.x - 30, y: point.y});
+      expect(chart.tooltip.getActiveElements()).toEqual([]);
+    });
+
+    it('should not clear programmatic active elements on replayed events', function() {
+      var chart = acquireChart({
+        type: 'line',
+        data: {
+          labels: ['A', 'B', 'C', 'D'],
+          datasets: [{data: [10, 20, 30, 100]}],
+        },
+        options: {layout: {padding: 50}}
+      });
+
+      chart.tooltip.setActiveElements([{datasetIndex: 0, index: 1}], {x: 1, y: 1});
+      chart.update();
+      expect(chart.tooltip.getActiveElements().length).toBe(1);
     });
 
     it('should update active elements when datasets are removed and added', async function() {
@@ -1762,7 +1806,6 @@ describe('Plugin.Tooltip', function() {
     const expectedPoints = [jasmine.objectContaining({datasetIndex: 0, index: 1}), jasmine.objectContaining({datasetIndex: 1, index: 1})];
 
     await jasmine.triggerMouseEvent(chart, 'mousemove', point);
-    await jasmine.triggerMouseEvent(chart, 'mousemove', {x: chart.chartArea.left - 5, y: point.y});
 
     expect(chart.tooltip.getActiveElements()).toEqual(expectedPoints);
 
@@ -1771,7 +1814,7 @@ describe('Plugin.Tooltip', function() {
 
     await jasmine.triggerMouseEvent(chart, 'mousemove', {x: 2, y: 1});
 
-    expect(chart.tooltip.getActiveElements()).toEqual([expectedPoints[0]]);
+    expect(chart.tooltip.getActiveElements()).toEqual([]);
   });
 
   it('should tolerate elements removed on events outside chartArea', async function() {
@@ -1804,7 +1847,6 @@ describe('Plugin.Tooltip', function() {
     const expectedPoints = [jasmine.objectContaining({datasetIndex: 0, index: 1}), jasmine.objectContaining({datasetIndex: 1, index: 1})];
 
     await jasmine.triggerMouseEvent(chart, 'mousemove', point);
-    await jasmine.triggerMouseEvent(chart, 'mousemove', {x: chart.chartArea.left - 5, y: point.y});
 
     expect(chart.tooltip.getActiveElements()).toEqual(expectedPoints);
 
