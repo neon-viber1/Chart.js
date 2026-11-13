@@ -47,6 +47,6 @@ Namespace: `options.scales[scaleId].border`, it defines options for the border t
 | `display` | `boolean` | | | `true` | If true, draw a border at the edge between the axis and the chart area.
 | `color` | [`Color`](../general/colors.md) | | | `Chart.defaults.borderColor` | The color of the border line.
 | `width` | `number` | | | `1` | The width of the border line.
-| `dash` | `number[]` | Yes | | `[]` | Length and spacing of dashes on grid lines. See [MDN](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash).
-| `dashOffset` | `number` | Yes | | `0.0` | Offset for line dashes. See [MDN](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineDashOffset).
+| `dash` | `number[]` | Yes | | `[]` | Length and spacing of dashes on grid lines (the axis border line itself is always drawn solid). See [MDN](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash).
+| `dashOffset` | `number` | Yes | | `0.0` | Offset for line dashes on grid lines. See [MDN](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineDashOffset).
 | `z` | `number` | | | `0` | z-index of the border layer. Values &lt;= 0 are drawn under datasets, &gt; 0 on top.
