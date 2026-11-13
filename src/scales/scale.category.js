@@ -51,6 +51,30 @@ export default class CategoryScale extends Scale {
     this._startValue = undefined;
     this._valueRange = 0;
     this._addedLabels = [];
+    /** @type {number[]|null} */
+    this._visibleValues = null;
+  }
+
+  /**
+   * Returns the sorted label indices having visible data, or null when no data is hidden.
+   * @private
+   */
+  _getVisibleValues() {
+    const metas = this.getMatchingVisibleMetas();
+    const axis = this.axis;
+    const visible = new Set();
+    let anyHidden = false;
+    for (const meta of metas) {
+      const parsed = meta._parsed;
+      for (let i = 0; i < parsed.length; i++) {
+        if (meta.controller._isDataHidden(i)) {
+          anyHidden = true;
+        } else if (isFinite(parsed[i][axis])) {
+          visible.add(parsed[i][axis]);
+        }
+      }
+    }
+    return anyHidden ? [...visible].sort((a, b) => a - b) : null;
   }
 
   init(scaleOptions) {
@@ -100,6 +124,16 @@ export default class CategoryScale extends Scale {
     const offset = this.options.offset;
     const ticks = [];
     let labels = this.getLabels();
+    const visibleValues = this._getVisibleValues();
+
+    if (visibleValues) {
+      const values = visibleValues.filter(v => v >= min && v <= max);
+      this._visibleValues = values;
+      this._valueRange = Math.max(values.length - (offset ? 0 : 1), 1);
+      this._startValue = offset ? -0.5 : 0;
+      return values.map(value => ({value}));
+    }
+    this._visibleValues = null;
 
     // If we are viewing some subset of labels, slice the original array
     labels = (min === 0 && max === labels.length - 1) ? labels : labels.slice(min, max + 1);
@@ -135,7 +169,13 @@ export default class CategoryScale extends Scale {
       value = this.parse(value);
     }
 
-    return value === null ? NaN : this.getPixelForDecimal((value - this._startValue) / this._valueRange);
+    if (value === null) {
+      return NaN;
+    }
+    if (this._visibleValues) {
+      value = this._getVisiblePosition(value);
+    }
+    return this.getPixelForDecimal((value - this._startValue) / this._valueRange);
   }
 
   // Must override base implementation because it calls getPixelForValue
@@ -148,8 +188,26 @@ export default class CategoryScale extends Scale {
     return this.getPixelForValue(ticks[index].value);
   }
 
+  /**
+   * Converts a label index to its position among the visible labels.
+   * @private
+   */
+  _getVisiblePosition(value) {
+    const values = this._visibleValues;
+    let pos = 0;
+    while (pos < values.length && values[pos] < value) {
+      pos++;
+    }
+    return pos;
+  }
+
   getValueForPixel(pixel) {
-    return Math.round(this._startValue + this.getDecimalForPixel(pixel) * this._valueRange);
+    const pos = Math.round(this._startValue + this.getDecimalForPixel(pixel) * this._valueRange);
+    const values = this._visibleValues;
+    if (values && values.length) {
+      return values[Math.min(Math.max(pos, 0), values.length - 1)];
+    }
+    return pos;
   }
 
   getBasePixel() {

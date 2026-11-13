@@ -175,6 +175,8 @@ chart.toggleDataVisibility(2); // toggles the item in all datasets, at index 2
 chart.update(); // chart now renders with item hidden
 ```
 
+Hidden items are also ignored when scales compute their data limits, and a category scale does not reserve space for labels whose data is hidden in every visible dataset.
+
 ## getDataVisibility(index)
 
 Returns the stored visibility state of a data index for all datasets. Set by [toggleDataVisibility](#toggledatavisibility-index). A dataset controller should use this method to determine if an item should not be visible.

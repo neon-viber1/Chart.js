@@ -574,6 +574,18 @@ export default class DatasetController {
   }
 
   /**
+	 * Whether the data at the given index is hidden, either through
+	 * chart.toggleDataVisibility() or chart.hide(datasetIndex, dataIndex).
+	 * @param {number} index
+	 * @return {boolean}
+	 * @private
+	 */
+  _isDataHidden(index) {
+    const element = this._cachedMeta.data[index];
+    return !this.chart.getDataVisibility(index) || !!(element && element.hidden);
+  }
+
+  /**
 	 * @protected
 	 */
   getParsed(index) {
@@ -628,9 +640,13 @@ export default class DatasetController {
     const stack = createStack(canStack, meta, this.chart);
     const range = {min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY};
     const {min: otherMin, max: otherMax} = getUserBounds(otherScale);
+    const me = this;
     let i, parsed;
 
     function _skip() {
+      if (me._isDataHidden(i)) {
+        return true;
+      }
       parsed = _parsed[i];
       const otherValue = parsed[otherScale.axis];
       return !isFinite(parsed[scale.axis]) || otherMin > otherValue || otherMax < otherValue;
@@ -666,7 +682,7 @@ export default class DatasetController {
 
     for (i = 0, ilen = parsed.length; i < ilen; ++i) {
       value = parsed[i][scale.axis];
-      if (isFinite(value)) {
+      if (isFinite(value) && !this._isDataHidden(i)) {
         values.push(value);
       }
     }
