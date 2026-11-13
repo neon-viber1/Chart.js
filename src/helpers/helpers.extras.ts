@@ -11,14 +11,16 @@ export function fontString(pixelSize: number, fontStyle: string, fontFamily: str
 /**
 * Request animation polyfill
 */
-export const requestAnimFrame = (function() {
-  if (typeof window === 'undefined') {
-    return function(callback) {
-      return callback();
-    };
+export const requestAnimFrame = function(callback: FrameRequestCallback) {
+  // Looked up at call time so it works in dedicated workers (no `window`)
+  // and with late polyfills. Falls back to a synchronous call without rAF.
+  const raf = typeof globalThis !== 'undefined' && globalThis.requestAnimationFrame;
+  if (typeof raf !== 'function') {
+    return callback(0) as any;
   }
-  return window.requestAnimationFrame;
-}());
+  return raf.call(globalThis, callback);
+};
+
 
 /**
  * Throttles calling `fn` once per animation frame
@@ -36,7 +38,7 @@ export function throttled<TArgs extends Array<any>>(
     argsToUse = args;
     if (!ticking) {
       ticking = true;
-      requestAnimFrame.call(window, () => {
+      requestAnimFrame(() => {
         ticking = false;
         fn.apply(thisArg, argsToUse);
       });
