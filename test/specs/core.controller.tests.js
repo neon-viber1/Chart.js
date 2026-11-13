@@ -2336,4 +2336,72 @@ describe('Chart', function() {
       expect(chart.platform).toBeInstanceOf(Chart.platforms.BasicPlatform);
     });
   });
+
+  describe('routed scale color defaults', function() {
+    var saved;
+    beforeEach(function() {
+      saved = {color: Chart.defaults.color, border: Chart.defaults.borderColor};
+    });
+    afterEach(function() {
+      Chart.defaults.color = saved.color;
+      Chart.defaults.borderColor = saved.border;
+    });
+
+    function make(scales) {
+      return window.acquireChart({
+        type: 'line',
+        data: {datasets: [{data: [1, 2]}], labels: ['a', 'b']},
+        options: {scales}
+      });
+    }
+
+    it('should pick up changed defaults on update', function() {
+      var chart = make({});
+      Chart.defaults.color = '#111111';
+      Chart.defaults.borderColor = '#222222';
+      chart.update();
+      expect(chart.scales.x.options.ticks.color).toBe('#111111');
+      expect(chart.scales.y.options.grid.color).toBe('#222222');
+      expect(chart.scales.y.options.border.color).toBe('#222222');
+      expect(chart.scales.y.options.title.color).toBe('#111111');
+    });
+
+    it('should keep explicit colors over defaults', function() {
+      var chart = make({x: {ticks: {color: 'red'}, grid: {color: 'blue'}}});
+      Chart.defaults.color = '#111111';
+      Chart.defaults.borderColor = '#222222';
+      chart.update();
+      expect(chart.scales.x.options.ticks.color).toBe('red');
+      expect(chart.scales.x.options.grid.color).toBe('blue');
+      expect(chart.scales.y.options.ticks.color).toBe('#111111');
+    });
+
+    it('should pick up changed defaults on update for radial scales', function() {
+      var chart = window.acquireChart({
+        type: 'radar',
+        data: {datasets: [{data: [1, 2, 3]}], labels: ['a', 'b', 'c']}
+      });
+      Chart.defaults.color = '#111111';
+      Chart.defaults.borderColor = '#222222';
+      chart.update();
+      expect(chart.scales.r.options.ticks.color).toBe('#111111');
+      expect(chart.scales.r.options.pointLabels.color).toBe('#111111');
+      expect(chart.scales.r.options.angleLines.color).toBe('#222222');
+      expect(chart.scales.r.options.grid.color).toBe('#222222');
+    });
+
+    it('should allow overriding a default color after creation', function() {
+      var chart = make({});
+      chart.options.scales.x.ticks.color = 'green';
+      Chart.defaults.color = '#111111';
+      chart.update();
+      expect(chart.scales.x.options.ticks.color).toBe('green');
+    });
+
+    it('should not mutate defaults', function() {
+      var chart = make({});
+      chart.update();
+      expect(Object.getOwnPropertyDescriptor(Chart.defaults.scale.ticks, 'color').get).toBeDefined();
+    });
+  });
 });
