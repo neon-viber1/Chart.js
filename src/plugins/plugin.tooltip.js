@@ -1190,10 +1190,17 @@ export class Tooltip extends Element {
     if (!inChartArea) {
       // Let user control the active elements outside chartArea. Eg. using Legend.
       // But make sure that active elements are still valid.
-      return lastActive.filter(i =>
+      const valid = lastActive.filter(i =>
         this.chart.data.datasets[i.datasetIndex] &&
         this.chart.getDatasetMeta(i.datasetIndex).controller.getParsed(i.index) !== undefined
       );
+
+      // Close the tooltip when the pointer moved outside chartArea and
+      // is not over any element (eg. a point overflowing chartArea).
+      if (!replay && valid.length && !this.chart.getElementsAtEventForMode(e, options.mode, {...options, intersect: true}, replay).length) {
+        return [];
+      }
+      return valid;
     }
 
     // Find Active Elements for tooltips
