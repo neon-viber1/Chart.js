@@ -149,6 +149,31 @@ describe('Category scale tests', function() {
     expect(scale.parse('tick2')).toEqual(1);
   });
 
+  it('should support array labels when parsing object data by index', function() {
+    var chart = window.acquireChart({
+      type: 'bar',
+      data: {
+        labels: ['A', ['B', 'line 2'], 'C'],
+        datasets: [{
+          data: [{id: 0, value: 10}, {id: 1, value: 20}, {id: 2, value: 30}]
+        }]
+      },
+      options: {
+        parsing: {
+          xAxisKey: 'id',
+          yAxisKey: 'value'
+        }
+      }
+    });
+
+    var scale = chart.scales.x;
+    var parsed = chart.getDatasetMeta(0)._parsed;
+    expect(parsed.map(p => p.x)).toEqual([0, 1, 2]);
+    expect(parsed.map(p => p.y)).toEqual([10, 20, 30]);
+    expect(scale.getLabelForValue(1)).toEqual(['B', 'line 2']);
+    expect(getLabels(scale)).toEqual(['A', ['B', 'line 2'], 'C']);
+  });
+
   it('should get the correct label for the index', function() {
     var chart = window.acquireChart({
       type: 'line',
