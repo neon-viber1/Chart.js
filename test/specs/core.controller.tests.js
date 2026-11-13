@@ -1342,6 +1342,55 @@ describe('Chart', function() {
       wrapper.style.width = '450px';
     });
 
+    it('should restore the original size when an auto-height parent is resized and resized back', function(done) {
+      var chart = acquireChart({
+        type: 'line', // AR == 2
+        options: {
+          responsive: true,
+          maintainAspectRatio: true
+        }
+      }, {
+        canvas: {
+          style: ''
+        },
+        wrapper: {
+          style: 'width: 300px; position: relative'
+        }
+      });
+
+      expect(chart).toBeChartOfSize({
+        dw: 300, dh: 150,
+        rw: 300, rh: 150,
+      });
+
+      var wrapper = chart.canvas.parentNode;
+      waitForResize(chart, function() {
+        expect(chart).toBeChartOfSize({
+          dw: 150, dh: 75,
+          rw: 150, rh: 75,
+        });
+
+        waitForResize(chart, function() {
+          expect(chart).toBeChartOfSize({
+            dw: 300, dh: 150,
+            rw: 300, rh: 150,
+          });
+
+          waitForResize(chart, function() {
+            expect(chart).toBeChartOfSize({
+              dw: 450, dh: 225,
+              rw: 450, rh: 225,
+            });
+
+            done();
+          });
+          wrapper.style.width = '450px';
+        });
+        wrapper.style.width = '300px';
+      });
+      wrapper.style.width = '150px';
+    });
+
     it('should maintain aspect ratio when parent height changes', function(done) {
       var chart = acquireChart({
         options: {
