@@ -100,7 +100,7 @@ A number of changes were made to the configuration options passed to the `Chart`
 * The dataset option `steppedLine` was removed. Use `stepped`
 * The chart option `showLines` was renamed to `showLine` to match the dataset option.
 * The chart option `startAngle` was moved to `radial` scale options.
-* To override the platform class used in a chart instance, pass `platform: PlatformClass` in the config object. Note that the class should be passed, not an instance of the class.
+* To override the platform used in a chart instance, pass `platform: PlatformClass` in the config object. A platform instance may also be passed (since 4.5), in which case it is used as-is and can be shared by multiple charts.
 * `aspectRatio` defaults to 1 for doughnut, pie, polarArea, and radar charts
 * `TimeScale` does not read `t` from object data by default anymore. The default property is `x` or `y`, depending on the orientation. See [data structures](../general/data-structures.md) for details on how to change the default.
 * `tooltips` namespace was renamed to `tooltip` to match the plugin name
@@ -516,7 +516,7 @@ All helpers are now exposed in a flat hierarchy, e.g., `Chart.helpers.canvas.cli
 
 #### Changed in Platform
 
-* `Chart.platform` is no longer the platform object used by charts. Every chart instance now has a separate platform instance.
+* `Chart.platform` is no longer the platform object used by charts. By default every chart instance now has a separate platform instance (a single instance can be shared by passing it in the config).
 * `Chart.platforms` is an object that contains two usable platform classes, `BasicPlatform` and `DomPlatform`. It also contains `BasePlatform`, a class that all platforms must extend from.
 * If the canvas passed in is an instance of `OffscreenCanvas`, the `BasicPlatform` is automatically used.
 * `isAttached` method was added to platform.

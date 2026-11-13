@@ -3920,7 +3920,7 @@ export interface ChartConfiguration<
   data: ChartData<TType, TData, TLabel>;
   options?: ChartOptions<TType> | undefined;
   plugins?: Plugin<TType>[];
-  platform?: typeof BasePlatform;
+  platform?: typeof BasePlatform | BasePlatform;
 }
 
 export interface ChartConfigurationCustomTypesPerDataset<
