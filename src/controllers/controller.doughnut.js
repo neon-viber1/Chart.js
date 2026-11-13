@@ -227,8 +227,12 @@ export default class DoughnutController extends DatasetController {
     const maxHeight = (chartArea.height - spacing) / ratioY;
     const maxRadius = Math.max(Math.min(maxWidth, maxHeight) / 2, 0);
     const outerRadius = toDimension(this.options.radius, maxRadius);
-    const innerRadius = Math.max(outerRadius * cutout, 0);
-    const radiusLength = (outerRadius - innerRadius) / this._getVisibleDatasetWeightTotal();
+    const weightTotal = this._getVisibleDatasetWeightTotal();
+    const thickness = this.options.thickness;
+    const innerRadius = isFinite(thickness) && thickness !== null
+      ? Math.max(outerRadius - Math.max(thickness, 0) * weightTotal, 0)
+      : Math.max(outerRadius * cutout, 0);
+    const radiusLength = (outerRadius - innerRadius) / weightTotal;
     this.offsetX = offsetX * outerRadius;
     this.offsetY = offsetY * outerRadius;
 

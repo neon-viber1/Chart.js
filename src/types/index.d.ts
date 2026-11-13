@@ -319,6 +319,12 @@ export interface DoughnutControllerChartOptions {
   cutout: Scriptable<number | string, ScriptableContext<'doughnut'>>;
 
   /**
+   * Thickness (in pixels) of each ring. When set, it takes precedence over `cutout`.
+   * @default undefined
+   */
+  thickness?: number;
+
+  /**
    * Arc offset (in pixels).
    */
   offset: number | number[];
