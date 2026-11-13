@@ -1335,6 +1335,68 @@ describe('Chart.controllers.bar', function() {
       expect(console.warn).not.toHaveBeenCalled();
     });
 
+    it('should resolve the same stacks with the shared cache as without', function() {
+      const chart = window.acquireChart({
+        type: 'bar',
+        data: {
+          labels: ['a', 'b'],
+          datasets: [
+            {data: [1, 2], stack: 'x'},
+            {data: [2, 1], stack: 'x', hidden: true},
+            {data: [3, 1], stack: 'y'},
+            {data: [1, 1], xAxisID: 'x'},
+            {data: [2, 2], stack: 'y', hidden: true},
+            {data: [1, 3]}
+          ]
+        },
+        options: {animation: false, plugins: {legend: {display: false}}}
+      });
+      let checked = 0;
+      chart.data.datasets.forEach(function(ds, i) {
+        const controller = chart.getDatasetMeta(i).controller;
+        const original = controller.updateElements;
+        spyOn(controller, 'updateElements').and.callFake(function(...args) {
+          expect(chart._stacksCache).toBeDefined();
+          for (let last = 0; last < chart.data.datasets.length; last++) {
+            expect(controller._getStacks(last)).toEqual(controller._computeStacks(last));
+            expect(controller._getStackIndex(last, 'y')).toBe(
+              (function() {
+                const st = controller._computeStacks(last);
+                const idx = st.indexOf('y');
+                return idx === -1 ? st.length - 1 : idx;
+              }()));
+          }
+          expect(controller._getStacks(undefined)).toEqual(controller._computeStacks(undefined));
+          checked++;
+          return original.apply(this, args);
+        });
+      });
+      [undefined, true, false].forEach(function(stacked) {
+        chart.options.scales.x.stacked = stacked;
+        chart.update();
+      });
+      expect(checked).toBe(3 * chart.data.datasets.length);
+      expect(chart._stacksCache).toBeUndefined();
+    });
+
+    it('should keep one x tick per category with many datasets', function() {
+      const chart = window.acquireChart({
+        type: 'bar',
+        data: {
+          labels: ['a', 'b', 'c'],
+          datasets: Array.from({length: 300}, () => ({data: [1, 2, 3]}))
+        },
+        options: {animation: false, plugins: {legend: {display: false}}}
+      }, {canvas: {height: 200, width: 600}});
+      expect(chart.scales.x.ticks.map(t => t.label)).toEqual(['a', 'b', 'c']);
+      const first = chart.getDatasetMeta(0).data;
+      const last = chart.getDatasetMeta(299).data;
+      first.forEach((bar, c) => {
+        expect(Math.abs(bar.x - chart.scales.x.getPixelForValue(c))).toBeLessThan(chart.scales.x.width / 3 / 2);
+        expect(last[c].x).toBeGreaterThan(bar.x);
+      });
+    });
+
     it('should lay out many datasets without a stack lookup per bar', function() {
       const chart = window.acquireChart({
         type: 'bar',
