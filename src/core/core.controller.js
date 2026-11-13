@@ -618,6 +618,16 @@ class Chart {
     const area = this.chartArea;
     const noArea = area.width <= 0 || area.height <= 0;
 
+    if (noArea && !this._noAreaWarned && this.data.datasets.length && this.width > 0 && this.height > 0) {
+      // Warn once per chart instead of silently drawing nothing
+      this._noAreaWarned = true;
+      console.warn('Chart.js: the chart area has no space left to draw in (width: ' + area.width + ', height: ' + area.height +
+        '). This is often caused by a very large number of datasets filling the canvas with the legend. ' +
+        'Consider hiding the legend (plugins.legend.display: false) or reducing/aggregating the data.');
+    } else if (!noArea) {
+      this._noAreaWarned = false;
+    }
+
     this._layers = [];
     each(this.boxes, (box) => {
       if (noArea && box.position === 'chartArea') {

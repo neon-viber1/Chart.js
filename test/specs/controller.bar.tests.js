@@ -1309,6 +1309,33 @@ describe('Chart.controllers.bar', function() {
     expect(bar.options.borderWidth).toBe(2.5);
   });
 
+  describe('Many datasets', function() {
+    it('should not overlap adjacent bars within a category', function() {
+      const count = 300;
+      const chart = window.acquireChart({
+        type: 'bar',
+        data: {
+          labels: ['a', 'b'],
+          datasets: Array.from({length: count}, (_, i) => ({data: [i % 5 + 1, 3]}))
+        },
+        options: {
+          animation: false,
+          plugins: {legend: {display: false}}
+        }
+      }, {canvas: {height: 200, width: 600}});
+
+      for (let c = 0; c < 2; c++) {
+        let prevRight = -Infinity;
+        for (let i = 0; i < count; i++) {
+          const bar = chart.getDatasetMeta(i).data[c];
+          const left = bar.x - bar.width / 2;
+          expect(left).not.toBeLessThan(prevRight - 1e-6);
+          prevRight = bar.x + bar.width / 2;
+        }
+      }
+    });
+  });
+
   describe('Bar width', function() {
     beforeEach(function() {
       // 2 datasets

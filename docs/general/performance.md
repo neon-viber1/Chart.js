@@ -20,6 +20,10 @@ The [decimation plugin](../configuration/decimation.md) can be used with line ch
 
 Line charts are able to do [automatic data decimation during draw](#automatic-data-decimation-during-draw), when certain conditions are met. You should still consider decimating data yourself before passing it in for maximum performance since the automatic decimation occurs late in the chart life cycle.
 
+### Many datasets in a bar chart
+
+Every dataset in a grouped bar chart takes its own slot in each category, so hundreds or thousands of datasets make each bar narrower than one device pixel and neighbouring bars blend together. The default legend also grows with the number of datasets and can use up most of the canvas. If the chart area ends up with no width or height, nothing is drawn and a warning is logged to the console. Aggregate or decimate the data, hide the legend with `plugins.legend.display: false`, or use fewer datasets with more data points each.
+
 ## Tick Calculation
 
 ### Rotation
