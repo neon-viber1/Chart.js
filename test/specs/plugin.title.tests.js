@@ -261,6 +261,38 @@ describe('Plugin.title', function() {
     }]);
   });
 
+  describe('layout', function() {
+    it('should not depend on the data', function() {
+      function create(data) {
+        return acquireChart({
+          type: 'line',
+          data: {
+            labels: ['A', 'B', 'C', 'D'],
+            datasets: [{data}]
+          },
+          options: {
+            animation: false,
+            scales: {
+              y: {grace: '10%', ticks: {stepSize: 20}}
+            },
+            plugins: {
+              legend: false,
+              title: {display: true, text: 'My Chart', padding: 10}
+            }
+          }
+        });
+      }
+      var chart1 = create([10, 20, 30, 100]);
+      var chart2 = create([10, 20, 30, 90]);
+
+      expect(chart1.titleBlock.height).toBe(chart2.titleBlock.height);
+      expect(chart1.titleBlock.bottom).toBe(chart2.titleBlock.bottom);
+      expect(chart1.chartArea.top).toBe(chart2.chartArea.top);
+      // only the scale range differs, which changes the visible gap above the top gridline
+      expect(chart1.scales.y.max).not.toBe(chart2.scales.y.max);
+    });
+  });
+
   describe('config update', function() {
     it ('should update the options', function() {
       var chart = acquireChart({
