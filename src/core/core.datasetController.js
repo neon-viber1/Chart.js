@@ -9,23 +9,35 @@ import {createContext, sign} from '../helpers/index.js';
  * @typedef { import('./core.scale.js').default } Scale
  */
 
-function scaleClip(scale, allowedOverflow) {
+function hasValueAt(parsed, axis, value) {
+  for (let i = 0; i < parsed.length; i++) {
+    if (parsed[i] && parsed[i][axis] === value) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function scaleClip(scale, allowedOverflow, parsed, boundaryOverflow) {
   const opts = scale && scale.options || {};
   const reverse = opts.reverse;
-  const min = opts.min === undefined ? allowedOverflow : 0;
-  const max = opts.max === undefined ? allowedOverflow : 0;
+  // A user defined boundary clips data beyond it, but points lying exactly on it must not be cut off
+  const edge = (limit) => limit === undefined ? allowedOverflow
+    : (parsed && boundaryOverflow && hasValueAt(parsed, scale.axis, limit) ? boundaryOverflow : 0);
+  const min = edge(opts.min);
+  const max = edge(opts.max);
   return {
     start: reverse ? max : min,
     end: reverse ? min : max
   };
 }
 
-function defaultClip(xScale, yScale, allowedOverflow) {
+function defaultClip(xScale, yScale, allowedOverflow, parsed, boundaryOverflow) {
   if (allowedOverflow === false) {
     return false;
   }
-  const x = scaleClip(xScale, allowedOverflow);
-  const y = scaleClip(yScale, allowedOverflow);
+  const x = scaleClip(xScale, allowedOverflow, parsed, boundaryOverflow);
+  const y = scaleClip(yScale, allowedOverflow, parsed, boundaryOverflow);
 
   return {
     top: y.end,
@@ -682,6 +694,15 @@ export default class DatasetController {
   }
 
   /**
+	 * Overflow allowed for points lying exactly on a user defined scale min/max.
+	 * @return {number}
+	 * @private
+	 */
+  _getPointOverflow() {
+    return 0;
+  }
+
+  /**
 	 * @protected
 	 */
   getLabelAndValue(index) {
@@ -701,7 +722,7 @@ export default class DatasetController {
   _update(mode) {
     const meta = this._cachedMeta;
     this.update(mode || 'default');
-    meta._clip = toClip(valueOrDefault(this.options.clip, defaultClip(meta.xScale, meta.yScale, this.getMaxOverflow())));
+    meta._clip = toClip(valueOrDefault(this.options.clip, defaultClip(meta.xScale, meta.yScale, this.getMaxOverflow(), meta._parsed, this._getPointOverflow())));
   }
 
   /**

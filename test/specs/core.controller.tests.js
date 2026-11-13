@@ -2336,4 +2336,32 @@ describe('Chart', function() {
       expect(chart.platform).toBeInstanceOf(Chart.platforms.BasicPlatform);
     });
   });
+
+  describe('dataset clip area with scale min/max', function() {
+    function clipOf(min, clip) {
+      const chart = window.acquireChart({
+        type: 'line',
+        data: {labels: [1, 2, 3], datasets: [{data: [0, 5, 10], pointRadius: 10, clip}]},
+        options: {scales: {y: {min}}}
+      });
+      return chart._getSortedDatasetMetas()[0]._clip;
+    }
+
+    it('should overflow at a user defined min that lies on data', function() {
+      expect(clipOf(0).bottom).toBe(11);
+    });
+
+    it('should not overflow at a user defined min without data on it', function() {
+      expect(clipOf(-5).bottom).toBe(0);
+    });
+
+    it('should overflow when min is not defined', function() {
+      expect(clipOf(undefined).bottom).toBe(11);
+    });
+
+    it('should honour explicit clip', function() {
+      expect(clipOf(0, 2).bottom).toBe(2);
+      expect(clipOf(0, false).disabled).toBe(true);
+    });
+  });
 });

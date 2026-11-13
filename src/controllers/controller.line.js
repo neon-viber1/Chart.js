@@ -120,6 +120,19 @@ export default class LineController extends DatasetController {
   }
 
   /**
+	 * @private
+	 */
+  _getPointOverflow() {
+    const data = this._cachedMeta.data || [];
+    if (!data.length) {
+      return 0;
+    }
+    const first = data[0].size(this.resolveDataElementOptions(0));
+    const last = data[data.length - 1].size(this.resolveDataElementOptions(data.length - 1));
+    return Math.max(first, last) / 2;
+  }
+
+  /**
 	 * @protected
 	 */
   getMaxOverflow() {
