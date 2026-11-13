@@ -39,6 +39,39 @@ describe('Chart', function() {
     expect(createChart).not.toThrow();
   });
 
+  describe('empty chart area', function() {
+    function create(datasetCount, height) {
+      return window.acquireChart({
+        type: 'bar',
+        data: {
+          labels: ['a'],
+          datasets: Array.from({length: datasetCount}, (_, i) => ({label: 'd' + i, data: [1]}))
+        },
+        options: {
+          animation: false,
+          scales: {x: {display: false}, y: {display: false}},
+          plugins: {legend: {display: true, maxHeight: 10000}}
+        }
+      }, {canvas: {height, width: 100}});
+    }
+
+    it('should warn once when the chart area collapses', function() {
+      spyOn(console, 'warn');
+      const chart = create(200, 60);
+      expect(chart.chartArea.height <= 0 || chart.chartArea.width <= 0).toBe(true);
+      const count = () => console.warn.calls.allArgs().filter(a => (/chart area/).test(a[0])).length;
+      expect(count()).toBe(1);
+      chart.update();
+      expect(count()).toBe(1);
+    });
+
+    it('should not warn when the chart area is available', function() {
+      spyOn(console, 'warn');
+      create(2, 300);
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+  });
+
   describe('config initialization', function() {
     it('should create missing config.data properties', function() {
       var chart = acquireChart({});
