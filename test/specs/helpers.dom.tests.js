@@ -370,6 +370,69 @@ describe('DOM helpers tests', function() {
       expect(Math.abs(pos3.y - Math.round((event.clientY - rect3.y - 10) / 360 * 400))).toBeLessThanOrEqual(1);
     });
 
+    [2, 0.5].forEach(function(zoom) {
+      it(`should account for CSS zoom of ${zoom} on an ancestor`, function() {
+        const chart = window.acquireChart({}, {
+          canvas: {
+            height: 200,
+            width: 200,
+          }
+        });
+        chart.canvas.parentNode.style.zoom = zoom;
+
+        const rect = chart.canvas.getBoundingClientRect();
+        const event = {
+          clientX: rect.left + 50 * zoom,
+          clientY: rect.top + 100 * zoom
+        };
+        const pos = helpers.getRelativePosition(event, chart);
+        expect(Math.abs(pos.x - 50)).toBeLessThanOrEqual(1);
+        expect(Math.abs(pos.y - 100)).toBeLessThanOrEqual(1);
+      });
+
+      it(`should ignore offsetX/Y when CSS zoom of ${zoom} is applied`, function() {
+        const chart = window.acquireChart({}, {
+          canvas: {
+            height: 200,
+            width: 200,
+          }
+        });
+        chart.canvas.parentNode.style.zoom = zoom;
+
+        const rect = chart.canvas.getBoundingClientRect();
+        const event = {
+          offsetX: 50 * zoom,
+          offsetY: 100 * zoom,
+          clientX: rect.left + 50 * zoom,
+          clientY: rect.top + 100 * zoom
+        };
+        const pos = helpers.getRelativePosition(event, chart);
+        expect(Math.abs(pos.x - 50)).toBeLessThanOrEqual(1);
+        expect(Math.abs(pos.y - 100)).toBeLessThanOrEqual(1);
+      });
+
+      it(`should account for CSS zoom of ${zoom} with padding and border`, function() {
+        const chart = window.acquireChart({}, {
+          canvas: {
+            height: 200,
+            width: 200,
+            style: 'padding: 10px; border: 5px solid red'
+          }
+        });
+        chart.canvas.parentNode.style.zoom = zoom;
+
+        const rect = chart.canvas.getBoundingClientRect();
+        // point at chart-space (50, 100); the content box is 170px of the 200px canvas (border-box)
+        const event = {
+          clientX: rect.left + (15 + 50 * 170 / 200) * zoom,
+          clientY: rect.top + (15 + 100 * 170 / 200) * zoom
+        };
+        const pos = helpers.getRelativePosition(event, chart);
+        expect(Math.abs(pos.x - 50)).toBeLessThanOrEqual(1);
+        expect(Math.abs(pos.y - 100)).toBeLessThanOrEqual(1);
+      });
+    });
+
     it ('should get the correct relative position for a node in a ShadowRoot', function() {
       const event = {
         offsetX: 50,
