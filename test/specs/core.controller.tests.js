@@ -2327,6 +2327,130 @@ describe('Chart', function() {
     expect(point1.options.borderColor).toEqual('blue');
   });
 
+  describe('update("none") during hover animations', function() {
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    function createChart() {
+      return acquireChart({
+        type: 'line',
+        data: {
+          labels: ['a', 'b', 'c'],
+          datasets: [{
+            data: [1, 2, 3],
+            borderColor: 'red',
+            backgroundColor: 'red',
+            hoverBorderColor: 'blue',
+            hoverBackgroundColor: 'blue',
+            pointRadius: 3,
+            pointHoverRadius: 10
+          }]
+        },
+        options: {
+          animation: {duration: 400},
+          events: [],
+          plugins: {tooltip: {enabled: false}}
+        }
+      });
+    }
+    function expectUnhovered(point) {
+      expect(point.options.borderColor).toEqual('red');
+      expect(point.options.backgroundColor).toEqual('red');
+      expect(point.options.radius).toEqual(3);
+    }
+
+    it('should end up unhovered when unhover animation is interrupted', async function() {
+      const chart = createChart();
+      await wait(500);
+      const point = chart.getDatasetMeta(0).data[1];
+
+      chart.setActiveElements([{datasetIndex: 0, index: 1}]);
+      chart.update();
+      await wait(500);
+      expect(point.options.borderColor).toEqual('blue');
+
+      chart.setActiveElements([]);
+      chart.update();
+      await wait(150);
+      chart.update('none');
+      await wait(600);
+      expectUnhovered(chart.getDatasetMeta(0).data[1]);
+    });
+
+    it('should end up unhovered when hover animation is interrupted and element is unhovered', async function() {
+      const chart = createChart();
+      await wait(500);
+      chart.setActiveElements([{datasetIndex: 0, index: 1}]);
+      chart.update();
+      await wait(150);
+      chart.setActiveElements([]);
+      chart.update('none');
+      await wait(600);
+      expectUnhovered(chart.getDatasetMeta(0).data[1]);
+    });
+
+    it('should stay hovered when still active after update("none")', async function() {
+      const chart = createChart();
+      await wait(500);
+      chart.setActiveElements([{datasetIndex: 0, index: 1}]);
+      chart.update();
+      await wait(150);
+      chart.update('none');
+      await wait(600);
+      const point = chart.getDatasetMeta(0).data[1];
+      expect(point.options.borderColor).toEqual('blue');
+      expect(point.options.radius).toEqual(10);
+    });
+    it('should not leave points hovered when a plugin calls update("none") on mouse move', async function() {
+      let updating = false;
+      const chart = acquireChart({
+        type: 'line',
+        data: {
+          labels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+          datasets: [{
+            data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            borderColor: 'red',
+            backgroundColor: 'red',
+            hoverBorderColor: 'blue',
+            hoverBackgroundColor: 'blue',
+            pointRadius: 3,
+            pointHoverRadius: 10
+          }]
+        },
+        options: {
+          animation: {duration: 100},
+          interaction: {mode: 'nearest', intersect: false, axis: 'x'},
+          plugins: {tooltip: {enabled: false}}
+        },
+        plugins: [{
+          id: 'updater',
+          afterEvent(c, args) {
+            if (args.event.type === 'mousemove') {
+              if (updating) {
+                return;
+              }
+              updating = true;
+              try {
+                c.update('none');
+              } finally {
+                updating = false;
+              }
+            }
+          }
+        }]
+      });
+      await wait(300);
+      const meta = chart.getDatasetMeta(0);
+      const y = meta.data[0].y;
+      for (let i = 0; i < 80; i++) {
+        const x = meta.data[0].x + (meta.data[9].x - meta.data[0].x) * i / 79;
+        await jasmine.triggerMouseEvent(chart, 'mousemove', {x, y});
+        await wait(17);
+      }
+      await jasmine.triggerMouseEvent(chart, 'mouseout', {x: 0, y: 0});
+      await wait(500);
+      meta.data.forEach((p) => expectUnhovered(p));
+    });
+  });
+
   describe('platform', function() {
     it('should use the platform constructor provided in config', function() {
       const chart = acquireChart({
