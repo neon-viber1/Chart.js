@@ -51,9 +51,13 @@ export default class Animations {
     if (newOptions.$shared) {
       // Going to shared options:
       // After all animations are done, assign the shared options object to the element
-      // So any new updates to the shared options are observed
-      awaitAll(target.options.$animations, newOptions).then(() => {
-        target.options = newOptions;
+      // So any new updates to the shared options are observed.
+      // If the element's options were replaced meanwhile (e.g. by an update without animations),
+      // the options object animated here is stale and must not overwrite the current ones.
+      awaitAll(options.$animations, newOptions).then(() => {
+        if (target.options === options) {
+          target.options = newOptions;
+        }
       }, () => {
         // rejected, noop
       });
