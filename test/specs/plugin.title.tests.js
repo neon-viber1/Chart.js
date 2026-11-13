@@ -355,4 +355,28 @@ describe('Plugin.title', function() {
       expect(chart.titleBlock.options).toEqualOptions(Chart.defaults.plugins.title);
     });
   });
+
+  describe('with other plugins configured', function() {
+    const data = {labels: ['a', 'b'], datasets: [{data: [1, 2]}]};
+
+    it('should render title and subtitle next to tooltip options and inline plugins', function() {
+      const base = window.acquireChart({type: 'bar', data, options: {plugins: {legend: false}}});
+      const chart = window.acquireChart({
+        type: 'bar',
+        data,
+        plugins: [{id: 'inline'}],
+        options: {
+          plugins: {
+            legend: false,
+            tooltip: {enabled: true},
+            title: {display: true, text: 'Title'},
+            subtitle: {display: true, text: 'Subtitle'}
+          }
+        }
+      });
+
+      expect(chart.titleBlock.height).toBeGreaterThan(0);
+      expect(chart.chartArea.top).toBeGreaterThan(base.chartArea.top + chart.titleBlock.height);
+    });
+  });
 });
