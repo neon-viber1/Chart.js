@@ -95,6 +95,10 @@ module.exports = {
 };
 ```
 
+## Spacing between the chart title and the top of the axis
+
+The position of the chart title and its `padding` are independent of the data. However, `grace` and `ticks.stepSize` can make the top of the axis depend on the data, so the visible distance between the title and the top gridline may differ between charts with the same options. Set `min` and `max` explicitly (and/or drop `ticks.stepSize`) to get a fixed range.
+
 ## Internal data format
 
 Internally, the linear scale uses numeric data.
