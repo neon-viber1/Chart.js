@@ -83,13 +83,17 @@ function getCanvasPosition(
   const {offsetX, offsetY} = source as MouseEvent;
   let box = false;
   let x, y;
-  if (useOffsetPos(offsetX, offsetY, e.target)) {
+  // Effective CSS `zoom` of the canvas (including ancestors). Browsers do not agree on the
+  // units of offsetX/Y when zoomed, so client coordinates are used and converted back
+  // to layout (unzoomed) pixels instead.
+  const zoom = (canvas as HTMLCanvasElement & {currentCSSZoom?: number}).currentCSSZoom || 1;
+  if (zoom === 1 && useOffsetPos(offsetX, offsetY, e.target)) {
     x = offsetX;
     y = offsetY;
   } else {
     const rect = canvas.getBoundingClientRect();
-    x = source.clientX - rect.left;
-    y = source.clientY - rect.top;
+    x = (source.clientX - rect.left) / zoom;
+    y = (source.clientY - rect.top) / zoom;
     box = true;
   }
   return {x, y, box};
