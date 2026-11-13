@@ -80,6 +80,10 @@ let chart = new Chart(ctx, {
 });
 ```
 
+## Hidden data
+
+Labels that only have hidden data (for example after `chart.toggleDataVisibility(index)`) are removed from the scale, so the remaining items expand to fill the space.
+
 ## Internal data format
 
 Internally category scale uses label indices

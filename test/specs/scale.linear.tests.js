@@ -1395,4 +1395,27 @@ describe('Linear Scale', function() {
 
     expect(createChart).not.toThrow();
   });
+
+  it('should ignore hidden data when computing limits', function() {
+    var chart = window.acquireChart({
+      type: 'bar',
+      data: {
+        labels: ['a', 'b', 'c'],
+        datasets: [{data: [1, 100, 3]}]
+      },
+      options: {animation: false, scales: {y: {type: 'linear'}}}
+    });
+    expect(chart.scales.y.max).toBeGreaterThanOrEqual(100);
+
+    chart.toggleDataVisibility(1);
+    chart.update();
+    expect(chart.scales.y.max).toBeLessThan(10);
+
+    chart.toggleDataVisibility(1);
+    chart.update();
+    expect(chart.scales.y.max).toBeGreaterThanOrEqual(100);
+
+    chart.hide(0, 1);
+    expect(chart.scales.y.max).toBeLessThan(10);
+  });
 });

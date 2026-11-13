@@ -568,4 +568,26 @@ describe('Category scale tests', function() {
     expect(chart.scales.x.min).toEqual(0);
     expect(chart.scales.x.max).toEqual(3);
   });
+
+  it('should only build ticks for labels with visible data', function() {
+    var chart = window.acquireChart({
+      type: 'bar',
+      data: {
+        labels: ['a', 'b', 'c', 'd'],
+        datasets: [{data: [1, 2, 3, 4]}]
+      },
+      options: {animation: false}
+    });
+    expect(chart.scales.x.ticks.map(t => t.value)).toEqual([0, 1, 2, 3]);
+
+    chart.toggleDataVisibility(1);
+    chart.update();
+    var x = chart.scales.x;
+    expect(x.ticks.map(t => t.value)).toEqual([0, 2, 3]);
+    expect(x.getPixelForValue(2) - x.getPixelForValue(0)).toBeCloseToPixel(x.getPixelForValue(3) - x.getPixelForValue(2));
+
+    chart.toggleDataVisibility(1);
+    chart.update();
+    expect(chart.scales.x.ticks.map(t => t.value)).toEqual([0, 1, 2, 3]);
+  });
 });
