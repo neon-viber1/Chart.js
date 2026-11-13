@@ -133,6 +133,26 @@ const cfg = {
 }
 ```
 
+When using a [category scale](../axes/cartesian/category.md) with object data, the value found at `xAxisKey` is used as an index into `data.labels` (or as a label string). To show a multi-line label, put an array in `labels` and reference it by index from the data objects:
+
+```javascript
+const cfg = {
+  type: 'bar',
+  data: {
+    labels: ['A', ['B', 'line 2'], 'C'],
+    datasets: [{
+      data: [{id: 0, value: 10}, {id: 1, value: 20}, {id: 2, value: 30}]
+    }]
+  },
+  options: {
+    parsing: {
+      xAxisKey: 'id',
+      yAxisKey: 'value'
+    }
+  }
+}
+```
+
 :::warning
 When using object notation in a radar chart, you still need a `labels` array with labels for the chart to show correctly.
 :::
