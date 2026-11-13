@@ -68,6 +68,57 @@ function retrieveAxisFromDatasets(id, config) {
   return {};
 }
 
+/**
+ * Defines `key` on `target` as an own accessor that reads the routed default from `source`
+ * on every access, so changes to the defaults are picked up by later chart updates.
+ * Assigning a value replaces the accessor with a regular data property.
+ */
+const lazyGetters = new WeakSet();
+
+function defineLazyDefault(target, key, source) {
+  const get = () => source[key];
+  lazyGetters.add(get);
+  Object.defineProperty(target, key, {
+    enumerable: true,
+    configurable: true,
+    get,
+    set(value) {
+      Object.defineProperty(this, key, {value, writable: true, enumerable: true, configurable: true});
+    }
+  });
+}
+
+/**
+ * Merges `source` into `target` only where `target` has no own value. Routed (accessor)
+ * values are kept lazy, instead of being frozen as a snapshot in the chart options.
+ */
+function mergeScaleSource(target, source) {
+  if (!isObject(target) || !isObject(source)) {
+    return;
+  }
+  Object.keys(source).forEach(key => {
+    const owned = Object.prototype.hasOwnProperty.call(target, key);
+    const descriptor = Object.getOwnPropertyDescriptor(source, key);
+    if (descriptor && descriptor.get) {
+      if (!owned) {
+        if (lazyGetters.has(descriptor.get)) {
+          // lazy accessor created by defineLazyDefault: keep it as is
+          Object.defineProperty(target, key, descriptor);
+        } else {
+          defineLazyDefault(target, key, source);
+        }
+      }
+    } else if (isObject(source[key])) {
+      if (!owned) {
+        target[key] = Object.create(null);
+      }
+      mergeScaleSource(target[key], source[key]);
+    } else if (!owned) {
+      mergeIf(target, [{[key]: source[key]}]);
+    }
+  });
+}
+
 function mergeScaleConfig(config, options) {
   const chartDefaults = overrides[config.type] || {scales: {}};
   const configScales = options.scales || {};
@@ -86,7 +137,11 @@ function mergeScaleConfig(config, options) {
     const axis = determineAxis(id, scaleConf, retrieveAxisFromDatasets(id, config), defaults.scales[scaleConf.type]);
     const defaultId = getDefaultScaleIDFromAxis(axis, chartIndexAxis);
     const defaultScaleOptions = chartDefaults.scales || {};
-    scales[id] = mergeIf(Object.create(null), [{axis}, scaleConf, defaultScaleOptions[axis], defaultScaleOptions[defaultId]]);
+    const merged = scales[id] = Object.create(null);
+    mergeScaleSource(merged, {axis});
+    mergeScaleSource(merged, scaleConf);
+    mergeScaleSource(merged, defaultScaleOptions[axis]);
+    mergeScaleSource(merged, defaultScaleOptions[defaultId]);
   });
 
   // Then merge dataset defaults to scale configs
@@ -99,14 +154,17 @@ function mergeScaleConfig(config, options) {
       const axis = getAxisFromDefaultScaleID(defaultID, indexAxis);
       const id = dataset[axis + 'AxisID'] || axis;
       scales[id] = scales[id] || Object.create(null);
-      mergeIf(scales[id], [{axis}, configScales[id], defaultScaleOptions[defaultID]]);
+      mergeScaleSource(scales[id], {axis});
+      mergeScaleSource(scales[id], configScales[id]);
+      mergeScaleSource(scales[id], defaultScaleOptions[defaultID]);
     });
   });
 
   // apply scale defaults, if not overridden by dataset defaults
   Object.keys(scales).forEach(key => {
     const scale = scales[key];
-    mergeIf(scale, [defaults.scales[scale.type], defaults.scale]);
+    mergeScaleSource(scale, defaults.scales[scale.type]);
+    mergeScaleSource(scale, defaults.scale);
   });
 
   return scales;
